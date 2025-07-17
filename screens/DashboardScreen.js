@@ -67,6 +67,9 @@ const DashboardScreen = ({ navigation }) => {
   const totalSpent = expenses
     .filter((item) => item.status === 'Payment Cleared')
     .reduce((sum, item) => sum + Number(item.amount), 0);
+
+  const pendingBills = expenses.filter((item) => item.status === 'Pending').length;
+
   const remaining = totalBudget - totalSpent;
   const progress = totalBudget > 0 ? totalSpent / totalBudget : 0;
 
@@ -92,9 +95,10 @@ const DashboardScreen = ({ navigation }) => {
             </>
           ) : (
             <>
-              <Text style={styles.cardText}>💰 Total Budget: ₹{totalBudget}</Text>
-              <Text style={styles.cardText}>🧾 Spent: ₹{totalSpent}</Text>
-              <Text style={styles.cardText}>💼 Remaining: ₹{remaining}</Text>
+              <Text style={styles.cardText}> Total Budget: ₹{totalBudget}</Text>
+              <Text style={styles.cardText}> Spent: ₹{totalSpent}</Text>
+              <Text style={styles.cardText}> Remaining: ₹{remaining}</Text>
+              <Text style={styles.cardText}> Pending Bills: {pendingBills}</Text>
               <ProgressBar
                 progress={progress}
                 color="#6200ee"
@@ -106,7 +110,7 @@ const DashboardScreen = ({ navigation }) => {
                   style={styles.secondaryButton}
                   mode="outlined"
                 >
-                  Set Budget
+                  ✏️ Set Budget
                 </Button>
               )}
             </>
@@ -121,7 +125,7 @@ const DashboardScreen = ({ navigation }) => {
           style={styles.primaryButton}
           labelStyle={styles.buttonLabel}
         >
-          ➕ Add Expense
+           Add Expense
         </Button>
       )}
 
@@ -131,7 +135,7 @@ const DashboardScreen = ({ navigation }) => {
         style={styles.secondaryButton}
         labelStyle={[styles.buttonLabel, { color: '#6200ee' }]}
       >
-        📄 View All Expenses
+         View All Expenses
       </Button>
 
       <Button
@@ -142,7 +146,7 @@ const DashboardScreen = ({ navigation }) => {
         style={styles.logoutButton}
         labelStyle={{ color: '#d32f2f', fontWeight: 'bold' }}
       >
-        🚪 Logout
+         Logout
       </Button>
     </View>
   );
