@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Button, Card, ProgressBar, TextInput } from 'react-native-paper';
+import { Button, Card, ProgressBar, TextInput, Menu } from 'react-native-paper';
 import { useIsFocused } from '@react-navigation/native';
 import {
   collection,
@@ -18,6 +18,9 @@ const DashboardScreen = ({ navigation }) => {
   const [totalBudget, setTotalBudget] = useState(0);
   const [editMode, setEditMode] = useState(false);
   const [newBudget, setNewBudget] = useState('');
+  const [studentNames, setStudentNames] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [menuVisible, setMenuVisible] = useState(false);
   const isFocused = useIsFocused();
 
   useEffect(() => {
@@ -40,6 +43,9 @@ const DashboardScreen = ({ navigation }) => {
     const snapshot = await getDocs(collection(db, 'expenses'));
     const data = snapshot.docs.map((doc) => doc.data());
     setExpenses(data);
+
+    const uniqueNames = [...new Set(data.map((item) => item.studentName).filter(Boolean))];
+    setStudentNames(uniqueNames);
   };
 
   const fetchBudget = async () => {
@@ -73,8 +79,10 @@ const DashboardScreen = ({ navigation }) => {
   const remaining = totalBudget - totalSpent;
   const progress = totalBudget > 0 ? totalSpent / totalBudget : 0;
 
+  const studentExpenses = expenses.filter((e) => e.studentName === selectedStudent);
+
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Dashboard ({role})</Text>
 
       <Card style={styles.card}>
@@ -110,7 +118,7 @@ const DashboardScreen = ({ navigation }) => {
                   style={styles.secondaryButton}
                   mode="outlined"
                 >
-                  ✏️ Set Budget
+                   Set Budget
                 </Button>
               )}
             </>
@@ -119,14 +127,58 @@ const DashboardScreen = ({ navigation }) => {
       </Card>
 
       {role === 'student' && (
-        <Button
-          mode="contained"
-          onPress={() => navigation.navigate('AddExpense')}
-          style={styles.primaryButton}
-          labelStyle={styles.buttonLabel}
-        >
-           Add Expense
-        </Button>
+        <>
+          <Card style={styles.card}>
+            <Card.Content>
+              <Text style={styles.cardText}> View Your Expenses</Text>
+              <Menu
+                visible={menuVisible}
+                onDismiss={() => setMenuVisible(false)}
+                anchor={
+                  <Button
+                    mode="outlined"
+                    onPress={() => setMenuVisible(true)}
+                    style={styles.secondaryButton}
+                  >
+                    {selectedStudent ? `👤 ${selectedStudent}` : 'Select Your Name'}
+                  </Button>
+                }
+              >
+                {studentNames.map((name, index) => (
+                  <Menu.Item
+                    key={index}
+                    title={name}
+                    onPress={() => {
+                      setSelectedStudent(name);
+                      setMenuVisible(false);
+                    }}
+                  />
+                ))}
+              </Menu>
+
+              {selectedStudent && studentExpenses.length === 0 && (
+                <Text style={{ marginTop: 10, color: '#888' }}>No expenses found.</Text>
+              )}
+
+              {selectedStudent &&
+                studentExpenses.map((exp, idx) => (
+                  <View key={idx} style={styles.expenseBox}>
+                    <Text style={{ fontWeight: 'bold' }}>{exp.title}</Text>
+                    <Text>₹{exp.amount} - {exp.status}</Text>
+                  </View>
+                ))}
+            </Card.Content>
+          </Card>
+
+          <Button
+            mode="contained"
+            onPress={() => navigation.navigate('AddExpense')}
+            style={styles.primaryButton}
+            labelStyle={styles.buttonLabel}
+          >
+             Add Expense
+          </Button>
+        </>
       )}
 
       <Button
@@ -148,16 +200,16 @@ const DashboardScreen = ({ navigation }) => {
       >
          Logout
       </Button>
-    </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 24,
     paddingTop: 70,
     backgroundColor: '#f4f6fc',
+    flexGrow: 1,
   },
   title: {
     fontSize: 26,
@@ -205,6 +257,12 @@ const styles = StyleSheet.create({
   logoutButton: {
     marginTop: 40,
     alignSelf: 'center',
+  },
+  expenseBox: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 8,
+    backgroundColor: '#f2f2f2',
   },
 });
 
