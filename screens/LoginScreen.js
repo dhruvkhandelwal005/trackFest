@@ -21,7 +21,7 @@ const LoginScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🎉 Welcome to TrackFest</Text>
+      <Text style={styles.title}> Welcome to TrackFest</Text>
       <Text style={styles.subtitle}>Choose your role to continue</Text>
 
       <View style={styles.card}>
