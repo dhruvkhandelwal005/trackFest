@@ -1,5 +1,3 @@
-// screens/ExpenseListScreen.js
-
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -9,6 +7,9 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  RefreshControl,
+  SafeAreaView,
+  Modal,
   TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -21,15 +22,17 @@ import {
   query,
   orderBy,
 } from 'firebase/firestore';
-import { Card, Button, Chip } from 'react-native-paper';
+import { Card, Button, Chip, FAB } from 'react-native-paper';
 import * as ImagePicker from 'expo-image-picker';
 
 const ExpenseListScreen = () => {
   const [expenses, setExpenses] = useState([]);
   const [filteredExpenses, setFilteredExpenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [role, setRole] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -48,10 +51,17 @@ const ExpenseListScreen = () => {
       setExpenses(data);
       applyFilter(data, statusFilter);
       setLoading(false);
+      setRefreshing(false);
     } catch (err) {
       Alert.alert('Error', 'Failed to load expenses');
       setLoading(false);
+      setRefreshing(false);
     }
+  };
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchExpenses();
   };
 
   const applyFilter = (data, status) => {
@@ -66,6 +76,7 @@ const ExpenseListScreen = () => {
   const handleFilterChange = (status) => {
     setStatusFilter(status);
     applyFilter(expenses, status);
+    setShowFilterModal(false);
   };
 
   const handleStatusUpdate = async (id, status, extraData = {}) => {
@@ -74,7 +85,7 @@ const ExpenseListScreen = () => {
         status,
         ...extraData,
       });
-      fetchExpenses(); // refresh
+      fetchExpenses();
     } catch (err) {
       Alert.alert('Error', 'Failed to update status');
     }
@@ -100,13 +111,13 @@ const ExpenseListScreen = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'Payment Cleared':
-        return '#006400';
+        return '#388e3c';
       case 'Approved':
-        return 'green';
+        return '#43a047';
       case 'Rejected':
-        return 'red';
+        return '#e53935';
       default:
-        return 'orange';
+        return '#f57c00';
     }
   };
 
@@ -115,23 +126,33 @@ const ExpenseListScreen = () => {
       <Card.Content>
         <View style={styles.rowBetween}>
           <Text style={styles.title}>{item.title}</Text>
-          <Chip style={{ backgroundColor: getStatusColor(item.status) }} textStyle={{ color: 'white' }}>
+          <Chip
+            style={{
+              backgroundColor: getStatusColor(item.status),
+              borderWidth: 0,
+            }}
+            textStyle={{ color: '#fff', fontWeight: '600' }}
+          >
             {item.status}
           </Chip>
         </View>
 
         <Text style={styles.amount}>₹{item.amount}</Text>
         <Text style={styles.desc}>{item.description}</Text>
-   <Text style={styles.meta}>By: {item.studentName || 'Unknown'} ({item.role})</Text>
-
+        <Text style={styles.meta}>
+          Submitted by: {item.studentName || 'Unknown'} ({item.role})
+        </Text>
 
         {item.receipt && (
-          <Image source={{ uri: item.receipt }} style={styles.receipt} />
+          <View style={styles.imageContainer}>
+            <Text style={styles.imageLabel}>Receipt:</Text>
+            <Image source={{ uri: item.receipt }} style={styles.receipt} />
+          </View>
         )}
 
         {item.paymentProof && (
-          <View style={{ marginTop: 10 }}>
-            <Text style={styles.meta}>Payment Proof:</Text>
+          <View style={styles.imageContainer}>
+            <Text style={styles.imageLabel}>Payment Proof:</Text>
             <Image source={{ uri: item.paymentProof }} style={styles.receipt} />
           </View>
         )}
@@ -141,14 +162,16 @@ const ExpenseListScreen = () => {
             <Button
               mode="contained"
               onPress={() => handleStatusUpdate(item.id, 'Approved')}
-              style={[styles.actionBtn, { backgroundColor: 'green' }]}
+              style={[styles.actionBtn, { backgroundColor: '#43a047' }]}
+              labelStyle={styles.buttonLabel}
             >
               Approve
             </Button>
             <Button
               mode="contained"
               onPress={() => handleStatusUpdate(item.id, 'Rejected')}
-              style={[styles.actionBtn, { backgroundColor: 'red' }]}
+              style={[styles.actionBtn, { backgroundColor: '#e53935' }]}
+              labelStyle={styles.buttonLabel}
             >
               Reject
             </Button>
@@ -159,7 +182,8 @@ const ExpenseListScreen = () => {
           <Button
             mode="contained"
             onPress={() => uploadPaymentProof(item.id)}
-            style={{ marginTop: 12, backgroundColor: '#006400' }}
+            style={styles.paymentButton}
+            labelStyle={styles.buttonLabel}
           >
             Mark as Paid & Upload Proof
           </Button>
@@ -168,75 +192,231 @@ const ExpenseListScreen = () => {
     </Card>
   );
 
+  const renderFilterModal = () => (
+    <Modal
+      visible={showFilterModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowFilterModal(false)}
+    >
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={() => setShowFilterModal(false)}
+      >
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>Filter Expenses</Text>
+          {['All', 'Pending', 'Approved', 'Rejected', 'Payment Cleared'].map((status) => (
+            <TouchableOpacity
+              key={status}
+              style={[
+                styles.filterOption,
+                statusFilter === status && styles.selectedFilterOption,
+              ]}
+              onPress={() => handleFilterChange(status)}
+            >
+              <Text
+                style={[
+                  styles.filterOptionText,
+                  statusFilter === status && styles.selectedFilterOptionText,
+                ]}
+              >
+                {status}
+              </Text>
+              {statusFilter === status && (
+                <View style={styles.selectedIndicator} />
+              )}
+            </TouchableOpacity>
+          ))}
+        </View>
+      </TouchableOpacity>
+    </Modal>
+  );
+
   if (loading) {
     return (
-      <View style={styles.center}>
+      <SafeAreaView style={styles.center}>
         <ActivityIndicator size="large" color="#6200ee" />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <View style={styles.wrapper}>
-      <View style={styles.filterBar}>
-        {['All', 'Pending', 'Approved', 'Rejected', 'Payment Cleared'].map((status) => (
-          <Chip
-            key={status}
-            selected={statusFilter === status}
-            onPress={() => handleFilterChange(status)}
-            style={[
-              styles.chip,
-              {
-                backgroundColor:
-                  statusFilter === status ? '#6200ee' : '#f4f4f4',
-              },
-            ]}
-            textStyle={{
-              color: statusFilter === status ? '#fff' : '#6200ee',
-              fontWeight: '600',
-            }}
-          >
-            {status}
-          </Chip>
-        ))}
-      </View>
-
+    <SafeAreaView style={styles.container}>
       <FlatList
         data={filteredExpenses}
         keyExtractor={(item) => item.id}
         renderItem={renderItem}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={styles.listContent}
+        style={styles.list}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#6200ee']}
+            tintColor="#6200ee"
+          />
+        }
+        ListHeaderComponent={<View style={styles.headerSpacer} />}
       />
-    </View>
+
+      <FAB
+        style={styles.fab}
+        icon="filter"
+        color="#fff"
+        onPress={() => setShowFilterModal(true)}
+      />
+
+      {renderFilterModal()}
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: '#fff' },
-  list: { padding: 16, paddingBottom: 60 },
-  card: { marginBottom: 16, borderRadius: 12, elevation: 3 },
-  title: { fontSize: 18, fontWeight: 'bold' },
-  amount: { fontSize: 16, marginTop: 4, color: '#444' },
-  desc: { marginTop: 4, color: '#666' },
-  meta: { marginTop: 4, fontStyle: 'italic', color: '#888' },
-  receipt: { height: 160, width: '100%', marginTop: 12, borderRadius: 8 },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  actions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 },
-  actionBtn: { flex: 1, marginHorizontal: 6 },
-  center: { flex: 1, justifyContent: 'center' },
-  filterBar: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
-    backgroundColor: '#fff',
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
   },
-  chip: {
+  list: {
+    flex: 1,
+  },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 80,
+  paddingTop: 8,
+  },
+  headerSpacer: {
+    height: 8,
+  },
+  card: {
+    marginBottom: 20,
+    borderRadius: 12,
+    elevation: 2,
+    backgroundColor: '#fff',
+    overflow: 'hidden',
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#222',
+    flexShrink: 1,
     marginRight: 8,
-    marginBottom: 8,
-    borderColor: '#6200ee',
+  },
+  amount: {
+    fontSize: 16,
+    marginTop: 8,
+    color: '#333',
+    fontWeight: '600',
+  },
+  desc: {
+    marginTop: 6,
+    color: '#555',
+    lineHeight: 20,
+  },
+  meta: {
+    marginTop: 8,
+    color: '#666',
+    fontSize: 13,
+  },
+  imageContainer: {
+    marginTop: 12,
+  },
+  imageLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginBottom: 4,
+  },
+  receipt: {
+    height: 180,
+    width: '100%',
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: '#ddd',
+  },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 16,
+    gap: 8,
+  },
+  actionBtn: {
+    flex: 1,
+    borderRadius: 8,
+    elevation: 0,
+  },
+  paymentButton: {
+    marginTop: 16,
+    backgroundColor: '#006400',
+    borderRadius: 8,
+    elevation: 0,
+  },
+  buttonLabel: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  fab: {
+    position: 'absolute',
+    margin: 20,
+    right: 0,
+    bottom: 0,
+    backgroundColor: '#6200ee',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 20,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#6200ee',
+    textAlign: 'center',
+  },
+  filterOption: {
+    paddingVertical: 15,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectedFilterOption: {
+    backgroundColor: '#f5f5ff',
+  },
+  filterOptionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  selectedFilterOptionText: {
+    color: '#6200ee',
+    fontWeight: '600',
+  },
+  selectedIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#6200ee',
   },
 });
 

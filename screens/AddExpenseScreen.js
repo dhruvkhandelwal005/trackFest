@@ -1,5 +1,3 @@
-// screens/AddExpenseScreen.js
-
 import React, { useState } from 'react';
 import {
   View,
@@ -73,7 +71,7 @@ const AddExpenseScreen = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Add Expense</Text>
+      <Text style={styles.title}>📝 Add Expense</Text>
 
       <TextInput
         label="Your Name"
@@ -115,7 +113,7 @@ const AddExpenseScreen = ({ navigation }) => {
           {image ? (
             <Image source={{ uri: image.uri }} style={styles.image} />
           ) : (
-            <Text style={styles.imageText}>Tap to upload receipt</Text>
+            <Text style={styles.imageText}>📸 Tap to upload receipt</Text>
           )}
         </View>
       </TouchableOpacity>
@@ -126,6 +124,7 @@ const AddExpenseScreen = ({ navigation }) => {
         loading={loading}
         disabled={loading}
         style={styles.button}
+        labelStyle={styles.buttonLabel}
       >
         Submit Expense
       </Button>
@@ -135,32 +134,36 @@ const AddExpenseScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 24,
     paddingTop: 50,
-    backgroundColor: '#fff',
+    backgroundColor: '#f4f6fc',
     flexGrow: 1,
   },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
     color: '#6200ee',
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
   input: {
     marginBottom: 16,
+    backgroundColor: '#fff',
   },
   imagePicker: {
     height: 160,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#aaa',
-    marginBottom: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: '#bbb',
+    backgroundColor: '#fafafa',
+    marginBottom: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },
   imageText: {
-    color: '#999',
+    color: '#888',
+    fontSize: 15,
   },
   image: {
     width: '100%',
@@ -168,7 +171,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   button: {
+    backgroundColor: '#6200ee',
+    borderRadius: 10,
     paddingVertical: 6,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

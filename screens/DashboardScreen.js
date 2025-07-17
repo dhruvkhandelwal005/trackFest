@@ -1,5 +1,3 @@
-// screens/DashboardScreen.js
-
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -86,20 +84,28 @@ const DashboardScreen = ({ navigation }) => {
                 onChangeText={setNewBudget}
                 keyboardType="numeric"
                 mode="outlined"
-                style={{ marginBottom: 12 }}
+                style={styles.input}
               />
-              <Button mode="contained" onPress={saveBudget}>
+              <Button mode="contained" onPress={saveBudget} style={styles.primaryButton}>
                 Save Budget
               </Button>
             </>
           ) : (
             <>
-              <Text style={styles.cardText}>Total Budget: ₹{totalBudget}</Text>
-              <Text style={styles.cardText}>Spent: ₹{totalSpent}</Text>
-              <Text style={styles.cardText}>Remaining: ₹{remaining}</Text>
-              <ProgressBar progress={progress} color="#6200ee" style={{ marginTop: 12 }} />
+              <Text style={styles.cardText}>💰 Total Budget: ₹{totalBudget}</Text>
+              <Text style={styles.cardText}>🧾 Spent: ₹{totalSpent}</Text>
+              <Text style={styles.cardText}>💼 Remaining: ₹{remaining}</Text>
+              <ProgressBar
+                progress={progress}
+                color="#6200ee"
+                style={styles.progressBar}
+              />
               {role === 'treasurer' && (
-                <Button onPress={() => setEditMode(true)} style={{ marginTop: 12 }}>
+                <Button
+                  onPress={() => setEditMode(true)}
+                  style={styles.secondaryButton}
+                  mode="outlined"
+                >
                   Set Budget
                 </Button>
               )}
@@ -112,18 +118,20 @@ const DashboardScreen = ({ navigation }) => {
         <Button
           mode="contained"
           onPress={() => navigation.navigate('AddExpense')}
-          style={styles.button}
+          style={styles.primaryButton}
+          labelStyle={styles.buttonLabel}
         >
-          Add Expense
+          ➕ Add Expense
         </Button>
       )}
 
       <Button
         mode="outlined"
         onPress={() => navigation.navigate('Expenses')}
-        style={[styles.button, styles.outlined]}
+        style={styles.secondaryButton}
+        labelStyle={[styles.buttonLabel, { color: '#6200ee' }]}
       >
-        View All Expenses
+        📄 View All Expenses
       </Button>
 
       <Button
@@ -131,9 +139,10 @@ const DashboardScreen = ({ navigation }) => {
           await AsyncStorage.clear();
           navigation.replace('Login');
         }}
-        style={{ marginTop: 30 }}
+        style={styles.logoutButton}
+        labelStyle={{ color: '#d32f2f', fontWeight: 'bold' }}
       >
-        Logout
+        🚪 Logout
       </Button>
     </View>
   );
@@ -144,31 +153,54 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     paddingTop: 70,
-    backgroundColor: '#fff',
+    backgroundColor: '#f4f6fc',
   },
   title: {
     fontSize: 26,
     fontWeight: 'bold',
-    marginBottom: 20,
     color: '#6200ee',
     textAlign: 'center',
+    marginBottom: 24,
   },
   card: {
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginBottom: 30,
+    backgroundColor: '#fff',
+    borderRadius: 16,
     elevation: 4,
+    padding: 16,
+    marginBottom: 30,
   },
   cardText: {
     fontSize: 16,
-    marginBottom: 4,
+    marginBottom: 6,
+    color: '#333',
   },
-  button: {
+  progressBar: {
+    marginTop: 12,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#e0e0e0',
+  },
+  input: {
     marginBottom: 16,
-    paddingVertical: 6,
   },
-  outlined: {
+  primaryButton: {
+    backgroundColor: '#6200ee',
+    borderRadius: 10,
+    marginBottom: 16,
+  },
+  secondaryButton: {
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: '#6200ee',
+    marginTop: 16,
+  },
+  buttonLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  logoutButton: {
+    marginTop: 40,
+    alignSelf: 'center',
   },
 });
 
