@@ -1,2 +1,2 @@
-I haved added the code of my app and a video demonstrating my app. Please watch the video.
+I have added the code of my app and a video demonstrating my app. Please watch the video.
 Thank You ...
