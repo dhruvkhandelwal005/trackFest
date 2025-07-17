@@ -1,3 +1,5 @@
+// screens/ExpenseListScreen.js
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -7,6 +9,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../services/firebase';
@@ -19,6 +22,7 @@ import {
   orderBy,
 } from 'firebase/firestore';
 import { Card, Button, Chip } from 'react-native-paper';
+import * as ImagePicker from 'expo-image-picker';
 
 const ExpenseListScreen = () => {
   const [expenses, setExpenses] = useState([]);
@@ -64,17 +68,39 @@ const ExpenseListScreen = () => {
     applyFilter(expenses, status);
   };
 
-  const handleStatusUpdate = async (id, status) => {
+  const handleStatusUpdate = async (id, status, extraData = {}) => {
     try {
-      await updateDoc(doc(db, 'expenses', id), { status });
-      fetchExpenses(); // Refresh list and filters
+      await updateDoc(doc(db, 'expenses', id), {
+        status,
+        ...extraData,
+      });
+      fetchExpenses(); // refresh
     } catch (err) {
       Alert.alert('Error', 'Failed to update status');
     }
   };
 
+  const uploadPaymentProof = async (id) => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        quality: 0.7,
+        base64: true,
+      });
+
+      if (!result.canceled) {
+        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        handleStatusUpdate(id, 'Payment Cleared', { paymentProof: base64Image });
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Image selection failed');
+    }
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
+      case 'Payment Cleared':
+        return '#006400';
       case 'Approved':
         return 'green';
       case 'Rejected':
@@ -102,6 +128,13 @@ const ExpenseListScreen = () => {
           <Image source={{ uri: item.receipt }} style={styles.receipt} />
         )}
 
+        {item.paymentProof && (
+          <View style={{ marginTop: 10 }}>
+            <Text style={styles.meta}>Payment Proof:</Text>
+            <Image source={{ uri: item.paymentProof }} style={styles.receipt} />
+          </View>
+        )}
+
         {role === 'treasurer' && item.status === 'Pending' && (
           <View style={styles.actions}>
             <Button
@@ -120,6 +153,16 @@ const ExpenseListScreen = () => {
             </Button>
           </View>
         )}
+
+        {role === 'treasurer' && item.status === 'Approved' && (
+          <Button
+            mode="contained"
+            onPress={() => uploadPaymentProof(item.id)}
+            style={{ marginTop: 12, backgroundColor: '#006400' }}
+          >
+            Mark as Paid & Upload Proof
+          </Button>
+        )}
       </Card.Content>
     </Card>
   );
@@ -134,9 +177,8 @@ const ExpenseListScreen = () => {
 
   return (
     <View style={styles.wrapper}>
-      {/* Filter Bar */}
       <View style={styles.filterBar}>
-        {['All', 'Pending', 'Approved', 'Rejected'].map((status) => (
+        {['All', 'Pending', 'Approved', 'Rejected', 'Payment Cleared'].map((status) => (
           <Chip
             key={status}
             selected={statusFilter === status}
@@ -158,7 +200,6 @@ const ExpenseListScreen = () => {
         ))}
       </View>
 
-      {/* Expense List */}
       <FlatList
         data={filteredExpenses}
         keyExtractor={(item) => item.id}
@@ -170,61 +211,18 @@ const ExpenseListScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  wrapper: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  list: {
-    padding: 16,
-    paddingBottom: 60,
-  },
-  card: {
-    marginBottom: 16,
-    borderRadius: 12,
-    elevation: 3,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  amount: {
-    fontSize: 16,
-    marginTop: 4,
-    color: '#444',
-  },
-  desc: {
-    marginTop: 4,
-    color: '#666',
-  },
-  meta: {
-    marginTop: 4,
-    fontStyle: 'italic',
-    color: '#888',
-  },
-  receipt: {
-    height: 160,
-    width: '100%',
-    marginTop: 12,
-    borderRadius: 8,
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 12,
-  },
-  actionBtn: {
-    flex: 1,
-    marginHorizontal: 6,
-  },
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-  },
+  wrapper: { flex: 1, backgroundColor: '#fff' },
+  list: { padding: 16, paddingBottom: 60 },
+  card: { marginBottom: 16, borderRadius: 12, elevation: 3 },
+  title: { fontSize: 18, fontWeight: 'bold' },
+  amount: { fontSize: 16, marginTop: 4, color: '#444' },
+  desc: { marginTop: 4, color: '#666' },
+  meta: { marginTop: 4, fontStyle: 'italic', color: '#888' },
+  receipt: { height: 160, width: '100%', marginTop: 12, borderRadius: 8 },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  actions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 12 },
+  actionBtn: { flex: 1, marginHorizontal: 6 },
+  center: { flex: 1, justifyContent: 'center' },
   filterBar: {
     flexDirection: 'row',
     flexWrap: 'wrap',
