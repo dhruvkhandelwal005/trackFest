@@ -17,6 +17,7 @@ import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
 const AddExpenseScreen = ({ navigation }) => {
+  const [studentName, setStudentName] = useState('');
   const [title, setTitle] = useState('');
   const [amount, setAmount] = useState('');
   const [desc, setDesc] = useState('');
@@ -31,13 +32,13 @@ const AddExpenseScreen = ({ navigation }) => {
     });
 
     if (!result.canceled) {
-      setImage(result.assets[0]); // includes base64
+      setImage(result.assets[0]);
     }
   };
 
   const submitExpense = async () => {
-    if (!title || !amount) {
-      Alert.alert('Error', 'Please enter title and amount');
+    if (!studentName || !title || !amount) {
+      Alert.alert('Error', 'Please enter your name, title, and amount');
       return;
     }
 
@@ -50,6 +51,7 @@ const AddExpenseScreen = ({ navigation }) => {
         : null;
 
       await addDoc(collection(db, 'expenses'), {
+        studentName: studentName.trim(),
         title,
         amount: parseFloat(amount),
         description: desc,
@@ -72,6 +74,14 @@ const AddExpenseScreen = ({ navigation }) => {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.title}>Add Expense</Text>
+
+      <TextInput
+        label="Your Name"
+        value={studentName}
+        onChangeText={setStudentName}
+        mode="outlined"
+        style={styles.input}
+      />
 
       <TextInput
         label="Title"

@@ -122,7 +122,8 @@ const ExpenseListScreen = () => {
 
         <Text style={styles.amount}>₹{item.amount}</Text>
         <Text style={styles.desc}>{item.description}</Text>
-        <Text style={styles.meta}>By: {item.role || 'Unknown'}</Text>
+   <Text style={styles.meta}>By: {item.studentName || 'Unknown'} ({item.role})</Text>
+
 
         {item.receipt && (
           <Image source={{ uri: item.receipt }} style={styles.receipt} />
